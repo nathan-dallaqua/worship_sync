@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "worship_sync",
+    "name": "Worship Sync",
     "slug": "worship_sync",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -41,7 +41,7 @@
       ]
     ],
     "experiments": {
-      "typedRoutes": true,
+      "typedRoutes": false,
       "reactCompiler": true
     }
   }
