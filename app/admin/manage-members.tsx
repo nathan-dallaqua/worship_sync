@@ -9,6 +9,8 @@ import {
   View,
   Alert,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -30,62 +32,256 @@ const ALL_ROLES: MemberRole[] = [
 
 const ALL_ACCESS: AccessLevel[] = ['admin', 'integrante'];
 
-export default function ManageMembersScreen() {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
-  const { data: members, addMember, update, remove } = useMembers();
+function ConfirmModal({
+  visible,
+  title,
+  message,
+  confirmLabel,
+  confirmColor,
+  colors,
+  onCancel,
+  onConfirm,
+}: {
+  visible: boolean;
+  title: string;
+  message: string;
+  confirmLabel: string;
+  confirmColor: string;
+  colors: any;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+      <View style={styles.confirmOverlay}>
+        <Pressable style={styles.modalBackdrop} onPress={onCancel} />
+        <View style={[styles.confirmCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <IconSymbol name="trash.fill" size={32} color={confirmColor} />
+          <Text style={[styles.confirmTitle, { color: colors.text }]}>{title}</Text>
+          <Text style={[styles.confirmMessage, { color: colors.textSecondary }]}>{message}</Text>
+          <View style={styles.confirmActions}>
+            <Pressable
+              onPress={onCancel}
+              style={[styles.confirmBtn, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}>
+              <Text style={[styles.confirmBtnText, { color: colors.text }]}>Cancelar</Text>
+            </Pressable>
+            <Pressable
+              onPress={onConfirm}
+              style={[styles.confirmBtn, { backgroundColor: confirmColor }]}>
+              <Text style={[styles.confirmBtnText, { color: '#fff' }]}>{confirmLabel}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 
-  // Add form state
-  const [name, setName] = useState('');
-  const [selectedRoles, setSelectedRoles] = useState<MemberRole[]>([]);
-  const [selectedLevel, setSelectedLevel] = useState<AccessLevel>('integrante');
+function MemberFormModal({
+  visible,
+  member,
+  colors,
+  onClose,
+  onSave,
+}: {
+  visible: boolean;
+  member: Member | null;
+  colors: any;
+  onClose: () => void;
+  onSave: (data: { name: string; roles: MemberRole[]; level: AccessLevel }) => void;
+}) {
+  const isEdit = member !== null;
+  const [name, setName] = useState(member?.name || '');
+  const [selectedRoles, setSelectedRoles] = useState<MemberRole[]>(member?.roles || []);
+  const [selectedLevel, setSelectedLevel] = useState<AccessLevel>(member?.level || 'integrante');
 
-  // Edit modal state
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editMember, setEditMember] = useState<Member | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editRoles, setEditRoles] = useState<MemberRole[]>([]);
-  const [editLevel, setEditLevel] = useState<AccessLevel>('integrante');
+  // Reset form when modal opens/closes
+  const handleClose = () => {
+    onClose();
+  };
 
-  const resetAddForm = () => {
+  // Sync state when member changes
+  if (member && member.name !== name && name === '') {
+    // Only happens on first open
+  }
+
+  const handleSave = () => {
+    if (!name.trim() || selectedRoles.length === 0) {
+      Alert.alert('Preencha os campos', 'Nome e pelo menos um instrumento são obrigatórios.');
+      return;
+    }
+    onSave({ name: name.trim(), roles: selectedRoles, level: selectedLevel });
     setName('');
     setSelectedRoles([]);
     setSelectedLevel('integrante');
   };
 
-  const openEditModal = (member: Member) => {
-    setEditMember(member);
-    setEditName(member.name);
-    setEditRoles([...member.roles]);
-    setEditLevel(member.level || 'integrante');
+  // On dismiss reset
+  const onDismiss = () => {
+    setName('');
+    setSelectedRoles([]);
+    setSelectedLevel('integrante');
+    onClose();
+  };
+
+  // Init form when opening
+  const initForm = () => {
+    if (member) {
+      setName(member.name);
+      setSelectedRoles([...member.roles]);
+      setSelectedLevel(member.level || 'integrante');
+    } else {
+      setName('');
+      setSelectedRoles([]);
+      setSelectedLevel('integrante');
+    }
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onShow={initForm}
+      onRequestClose={onDismiss}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.modalOverlay}>
+        <Pressable style={styles.modalBackdrop} onPress={onDismiss} />
+        <View style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              {isEdit ? 'Editar Membro' : 'Novo Membro'}
+            </Text>
+            <Pressable onPress={onDismiss} style={styles.modalClose}>
+              <IconSymbol name="xmark.circle.fill" size={22} color={colors.textMuted} />
+            </Pressable>
+          </View>
+
+          <ScrollView
+            contentContainerStyle={styles.modalBody}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled">
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>NOME</Text>
+            <TextInput
+              style={[styles.modalInput, { color: colors.text, backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}
+              placeholder="Nome do membro"
+              placeholderTextColor={colors.textMuted}
+              value={name}
+              onChangeText={setName}
+              autoFocus
+            />
+
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>INSTRUMENTOS</Text>
+            <View style={styles.chipRow}>
+              {ALL_ROLES.map((role) => (
+                <Pressable
+                  key={role}
+                  onPress={() =>
+                    setSelectedRoles((prev) =>
+                      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role],
+                    )
+                  }
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: selectedRoles.includes(role) ? colors.primary : colors.surfaceSecondary,
+                      borderColor: selectedRoles.includes(role) ? colors.primary : colors.border,
+                    },
+                  ]}>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      { color: selectedRoles.includes(role) ? '#fff' : colors.textSecondary },
+                    ]}>
+                    {ROLE_LABELS[role]}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>PERMISSÃO</Text>
+            <View style={styles.chipRow}>
+              {ALL_ACCESS.map((level) => (
+                <Pressable
+                  key={level}
+                  onPress={() => setSelectedLevel(level)}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: selectedLevel === level ? colors.primary : colors.surfaceSecondary,
+                      borderColor: selectedLevel === level ? colors.primary : colors.border,
+                    },
+                  ]}>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      { color: selectedLevel === level ? '#fff' : colors.textSecondary },
+                    ]}>
+                    {ACCESS_LABELS[level]}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Pressable
+              onPress={handleSave}
+              style={({ pressed }) => [
+                styles.modalSaveBtn,
+                { backgroundColor: colors.primary },
+                pressed && { opacity: 0.8 },
+              ]}>
+              <Text style={styles.modalSaveBtnText}>{isEdit ? 'Salvar alterações' : 'Adicionar membro'}</Text>
+            </Pressable>
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+export default function ManageMembersScreen() {
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
+  const { data: members, addMember, update, remove } = useMembers();
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const openAddModal = () => {
+    setEditingMember(null);
     setModalVisible(true);
   };
 
-  const handleAdd = async () => {
-    if (!name.trim() || selectedRoles.length === 0) {
-      Alert.alert('Preencha os campos', 'Nome e pelo menos um instrumento são obrigatórios.');
-      return;
-    }
-    await addMember({ name: name.trim(), roles: selectedRoles, level: selectedLevel });
-    resetAddForm();
+  const openEditModal = (member: Member) => {
+    setEditingMember(member);
+    setModalVisible(true);
   };
 
-  const handleEditSave = async () => {
-    if (!editMember || !editName.trim() || editRoles.length === 0) return;
-    await update(editMember.id, {
-      name: editName.trim(),
-      roles: editRoles,
-      level: editLevel,
-    });
+  const closeModal = () => {
     setModalVisible(false);
-    setEditMember(null);
+    setEditingMember(null);
   };
 
-  const handleDelete = (id: string, memberName: string) => {
-    Alert.alert('Remover membro', `Remover ${memberName}?`, [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Remover', style: 'destructive', onPress: () => remove(id) },
-    ]);
+  const handleSave = async (data: { name: string; roles: MemberRole[]; level: AccessLevel }) => {
+    if (editingMember) {
+      await update(editingMember.id, data);
+    } else {
+      await addMember(data);
+    }
+    closeModal();
+  };
+
+  const handleDelete = (id: string, name: string) => {
+    setDeleteTarget({ id, name });
+  };
+
+  const confirmDelete = async () => {
+    if (deleteTarget) {
+      await remove(deleteTarget.id);
+      setDeleteTarget(null);
+    }
   };
 
   return (
@@ -96,97 +292,21 @@ export default function ManageMembersScreen() {
           <IconSymbol name="xmark.circle.fill" size={24} color={colors.textMuted} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Membros</Text>
-        <View style={styles.backBtn} />
+        <Pressable onPress={openAddModal} style={styles.addBtn}>
+          <IconSymbol name="plus.circle.fill" size={26} color={colors.primary} />
+        </Pressable>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled">
-        {/* Add form */}
-        <Text style={[styles.label, { color: colors.textMuted }]}>ADICIONAR MEMBRO</Text>
-        <TextInput
-          style={[styles.input, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }]}
-          placeholder="Nome do membro"
-          placeholderTextColor={colors.textMuted}
-          value={name}
-          onChangeText={setName}
-          onSubmitEditing={handleAdd}
-        />
-
-        <Text style={[styles.sublabel, { color: colors.textMuted }]}>Instrumentos</Text>
-        <View style={styles.chipRow}>
-          {ALL_ROLES.map((role) => (
-            <Pressable
-              key={role}
-              onPress={() =>
-                setSelectedRoles((prev) =>
-                  prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role],
-                )
-              }
-              style={[
-                styles.chip,
-                {
-                  backgroundColor: selectedRoles.includes(role) ? colors.primary : colors.surface,
-                  borderColor: selectedRoles.includes(role) ? colors.primary : colors.border,
-                },
-              ]}>
-              <Text
-                style={[
-                  styles.chipText,
-                  { color: selectedRoles.includes(role) ? '#fff' : colors.textSecondary },
-                ]}>
-                {ROLE_LABELS[role]}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <Text style={[styles.sublabel, { color: colors.textMuted }]}>Permissão</Text>
-        <View style={styles.chipRow}>
-          {ALL_ACCESS.map((level) => (
-            <Pressable
-              key={level}
-              onPress={() => setSelectedLevel(level)}
-              style={[
-                styles.chip,
-                {
-                  backgroundColor: selectedLevel === level ? colors.primary : colors.surface,
-                  borderColor: selectedLevel === level ? colors.primary : colors.border,
-                },
-              ]}>
-              <Text
-                style={[
-                  styles.chipText,
-                  { color: selectedLevel === level ? '#fff' : colors.textSecondary },
-                ]}>
-                {ACCESS_LABELS[level]}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <Pressable
-          onPress={handleAdd}
-          style={({ pressed }) => [
-            styles.addBtn,
-            { backgroundColor: colors.primary },
-            pressed && { opacity: 0.8 },
-          ]}>
-          <IconSymbol name="person.badge.plus" size={20} color="#fff" />
-          <Text style={styles.addBtnText}>Adicionar</Text>
-        </Pressable>
-
-        {/* Members list */}
-        <Text style={[styles.label, { color: colors.textMuted, marginTop: Spacing.lg }]}>
-          MEMBROS ({members.length})
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Text style={[styles.countLabel, { color: colors.textMuted }]}>
+          {members.length} {members.length === 1 ? 'membro' : 'membros'}
         </Text>
 
         {members.length === 0 ? (
           <EmptyState
             icon="groups"
             title="Nenhum membro"
-            subtitle="Adicione membros do grupo de louvor"
+            subtitle="Toque no + para adicionar membros do grupo"
           />
         ) : (
           members.map((member) => (
@@ -239,95 +359,24 @@ export default function ManageMembersScreen() {
         )}
       </ScrollView>
 
-      {/* Edit Modal */}
-      <Modal
+      <MemberFormModal
         visible={modalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setModalVisible(false)}>
-        <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
-          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-            <Pressable
-              onPress={() => setModalVisible(false)}
-              style={styles.backBtn}>
-              <IconSymbol name="xmark.circle.fill" size={24} color={colors.textMuted} />
-            </Pressable>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Editar Membro</Text>
-            <Pressable
-              onPress={handleEditSave}
-              style={({ pressed }) => [
-                styles.saveBtn,
-                { backgroundColor: colors.primary },
-                pressed && { opacity: 0.8 },
-              ]}>
-              <Text style={styles.saveBtnText}>Salvar</Text>
-            </Pressable>
-          </View>
+        member={editingMember}
+        colors={colors}
+        onClose={closeModal}
+        onSave={handleSave}
+      />
 
-          <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
-            <Text style={[styles.label, { color: colors.textMuted }]}>NOME</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }]}
-              placeholder="Nome do membro"
-              placeholderTextColor={colors.textMuted}
-              value={editName}
-              onChangeText={setEditName}
-            />
-
-            <Text style={[styles.sublabel, { color: colors.textMuted }]}>Instrumentos</Text>
-            <View style={styles.chipRow}>
-              {ALL_ROLES.map((role) => (
-                <Pressable
-                  key={role}
-                  onPress={() =>
-                    setEditRoles((prev) =>
-                      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role],
-                    )
-                  }
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: editRoles.includes(role) ? colors.primary : colors.surface,
-                      borderColor: editRoles.includes(role) ? colors.primary : colors.border,
-                    },
-                  ]}>
-                  <Text
-                    style={[
-                      styles.chipText,
-                      { color: editRoles.includes(role) ? '#fff' : colors.textSecondary },
-                    ]}>
-                    {ROLE_LABELS[role]}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={[styles.sublabel, { color: colors.textMuted }]}>Permissão</Text>
-            <View style={styles.chipRow}>
-              {ALL_ACCESS.map((level) => (
-                <Pressable
-                  key={level}
-                  onPress={() => setEditLevel(level)}
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: editLevel === level ? colors.primary : colors.surface,
-                      borderColor: editLevel === level ? colors.primary : colors.border,
-                    },
-                  ]}>
-                  <Text
-                    style={[
-                      styles.chipText,
-                      { color: editLevel === level ? '#fff' : colors.textSecondary },
-                    ]}>
-                    {ACCESS_LABELS[level]}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
-      </Modal>
+      <ConfirmModal
+        visible={deleteTarget !== null}
+        title="Remover membro"
+        message={`Tem certeza que deseja remover "${deleteTarget?.name}"? Esta ação não pode ser desfeita.`}
+        confirmLabel="Remover"
+        confirmColor={colors.danger || '#E17055'}
+        colors={colors}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
     </View>
   );
 }
@@ -355,57 +404,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  addBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   content: {
     padding: Spacing.lg,
     paddingBottom: 60,
   },
-  label: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1,
-    marginBottom: Spacing.sm,
-  },
-  sublabel: {
-    fontSize: 12,
+  countLabel: {
+    fontSize: 13,
     fontWeight: '600',
-    marginBottom: Spacing.sm,
-    marginTop: Spacing.md,
-  },
-  input: {
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 12,
-    fontSize: 15,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
     marginBottom: Spacing.md,
-  },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-  },
-  chipText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  addBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    paddingVertical: 12,
-    borderRadius: BorderRadius.md,
-  },
-  addBtnText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '700',
   },
   memberCard: {
     flexDirection: 'row',
@@ -467,34 +479,125 @@ const styles = StyleSheet.create({
   actionBtn: {
     padding: Spacing.sm,
   },
-  // Modal styles
-  modalContainer: {
+  // Modal
+  modalOverlay: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalCard: {
+    width: '100%',
+    maxHeight: '80%',
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    overflow: 'hidden',
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 54,
-    paddingBottom: Spacing.md,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
     borderBottomWidth: 1,
   },
   modalTitle: {
     fontSize: 17,
     fontWeight: '700',
   },
-  saveBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: BorderRadius.full,
+  modalClose: {
+    padding: 4,
   },
-  saveBtnText: {
+  modalBody: {
+    padding: Spacing.lg,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  modalInput: {
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 12,
+    fontSize: 15,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginBottom: Spacing.md,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  chipText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  modalSaveBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: BorderRadius.lg,
+    marginTop: Spacing.sm,
+  },
+  modalSaveBtnText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
   },
-  modalContent: {
+  // Confirm modal
+  confirmOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: Spacing.lg,
+  },
+  confirmCard: {
+    width: '100%',
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    padding: Spacing.lg,
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  confirmTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    marginTop: Spacing.xs,
+  },
+  confirmMessage: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  confirmActions: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginTop: Spacing.md,
+    width: '100%',
+  },
+  confirmBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  confirmBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
   },
 });

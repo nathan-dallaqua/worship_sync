@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors, BorderRadius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { Song } from '@/types';
@@ -12,6 +13,7 @@ type Props = {
 export function SongCard({ song, onPress }: Props) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const hasLinks = song.letrasUrl || song.spotifyUrl || song.youtubeUrl;
 
   return (
     <Pressable
@@ -36,6 +38,13 @@ export function SongCard({ song, onPress }: Props) {
           {song.artist}
         </Text>
       </View>
+      {hasLinks && (
+        <View style={styles.links}>
+          {song.youtubeUrl && <IconSymbol name="play.circle.fill" size={14} color="#FF0000" />}
+          {song.spotifyUrl && <IconSymbol name="music.note" size={14} color="#1DB954" />}
+          {song.letrasUrl && <IconSymbol name="doc.text.fill" size={14} color={colors.textMuted} />}
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -73,5 +82,9 @@ const styles = StyleSheet.create({
   artist: {
     fontSize: 13,
     marginTop: 2,
+  },
+  links: {
+    flexDirection: 'row',
+    gap: 3,
   },
 });

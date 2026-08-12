@@ -16,7 +16,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useSchedules } from '@/hooks/useSchedules';
 import { useSongs } from '@/hooks/useSongs';
 import { useMembers } from '@/hooks/useMembers';
-import type { MemberRole, ScheduleSong, ScheduleTeamMember } from '@/types';
+import type { MemberRole, ScheduleSong, ScheduleTeamMember, Song } from '@/types';
 import { ROLE_LABELS } from '@/types';
 
 export default function CreateScheduleScreen() {
@@ -33,12 +33,35 @@ export default function CreateScheduleScreen() {
   const [selectedSongs, setSelectedSongs] = useState<ScheduleSong[]>([]);
   const [team, setTeam] = useState<ScheduleTeamMember[]>([]);
 
-  const toggleSong = (songId: string, songTitle: string) => {
+  const toggleSong = (song: Song) => {
+    setSelectedSongs((prev) => {
+      const exists = prev.find((s) => s.songId === song.id);
+      if (exists) {
+        return prev.filter((s) => s.songId !== song.id);
+      }
+      return [
+        ...prev,
+        {
+          songId: song.id,
+          songTitle: song.title,
+          songArtist: song.artist,
+          key: song.key || '',
+          notes: '',
+          youtubeUrl: song.youtubeUrl || '',
+          spotifyUrl: song.spotifyUrl || '',
+        },
+      ];
+    });
+  };
+
+  const updateSongKey = (songId: string, field: 'key' | 'youtubeUrl' | 'spotifyUrl', value: string) => {
     setSelectedSongs((prev) =>
-      prev.some((s) => s.songId === songId)
-        ? prev.filter((s) => s.songId !== songId)
-        : [...prev, { songId, songTitle }],
+      prev.map((s) => (s.songId === songId ? { ...s, [field]: value } : s)),
     );
+  };
+
+  const removeSong = (songId: string) => {
+    setSelectedSongs((prev) => prev.filter((s) => s.songId !== songId));
   };
 
   const toggleMember = (memberId: string, memberName: string) => {
@@ -59,9 +82,13 @@ export default function CreateScheduleScreen() {
 
     const leader = members.find((m) => m.id === leaderId);
 
+    // Convert dd/MM/YYYY to ISO for storage
+    const [d, m, y] = date.split('/');
+    const isoDate = d && m && y ? `${y}-${m}-${d}` : date;
+
     await addSchedule({
       title,
-      date,
+      date: isoDate,
       description,
       leaderId,
       leaderName: leader?.name || 'Líder',
@@ -75,7 +102,6 @@ export default function CreateScheduleScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <IconSymbol name="xmark.circle.fill" size={24} color={colors.textMuted} />
@@ -92,8 +118,7 @@ export default function CreateScheduleScreen() {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Title */}
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Text style={[styles.label, { color: colors.textMuted }]}>TÍTULO</Text>
         <TextInput
           style={[styles.input, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }]}
@@ -103,17 +128,16 @@ export default function CreateScheduleScreen() {
           onChangeText={setTitle}
         />
 
-        {/* Date */}
         <Text style={[styles.label, { color: colors.textMuted }]}>DATA</Text>
         <TextInput
           style={[styles.input, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }]}
-          placeholder="YYYY-MM-DD"
+          placeholder="dd/MM/YYYY"
           placeholderTextColor={colors.textMuted}
           value={date}
           onChangeText={setDate}
+          keyboardType="numeric"
         />
 
-        {/* Description */}
         <Text style={[styles.label, { color: colors.textMuted }]}>DESCRIÇÃO (OPCIONAL)</Text>
         <TextInput
           style={[styles.input, styles.textArea, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }]}
@@ -125,7 +149,6 @@ export default function CreateScheduleScreen() {
           numberOfLines={3}
         />
 
-        {/* Leader */}
         <Text style={[styles.label, { color: colors.textMuted }]}>LÍDER</Text>
         <View style={styles.chipList}>
           {members.map((m) => (
@@ -139,14 +162,11 @@ export default function CreateScheduleScreen() {
                   borderColor: leaderId === m.id ? colors.primary : colors.border,
                 },
               ]}>
-              <Text style={[{ color: leaderId === m.id ? '#fff' : colors.text }]}>
-                {m.name}
-              </Text>
+              <Text style={[{ color: leaderId === m.id ? '#fff' : colors.text }]}>{m.name}</Text>
             </Pressable>
           ))}
         </View>
 
-        {/* Team */}
         <Text style={[styles.label, { color: colors.textMuted }]}>EQUIPE</Text>
         <View style={styles.chipList}>
           {members.map((m) => (
@@ -160,47 +180,104 @@ export default function CreateScheduleScreen() {
                   borderColor: team.some((t) => t.memberId === m.id) ? colors.primary : colors.border,
                 },
               ]}>
-              <Text
-                style={[
-                  { color: team.some((t) => t.memberId === m.id) ? '#fff' : colors.text },
-                ]}>
+              <Text style={[{ color: team.some((t) => t.memberId === m.id) ? '#fff' : colors.text }]}>
                 {m.name}
               </Text>
             </Pressable>
           ))}
         </View>
 
-        {/* Songs */}
-        <Text style={[styles.label, { color: colors.textMuted }]}>REPERTÓRIO</Text>
-        <View style={styles.songList}>
-          {songs.map((s) => (
-            <Pressable
-              key={s.id}
-              onPress={() => toggleSong(s.id, s.title)}
-              style={[
-                styles.songSelect,
-                {
-                  backgroundColor: selectedSongs.some((ss) => ss.songId === s.id)
-                    ? colors.primary + '15'
-                    : colors.surface,
-                  borderColor: selectedSongs.some((ss) => ss.songId === s.id)
-                    ? colors.primary
-                    : colors.border,
-                },
-              ]}>
-              <IconSymbol
-                name={selectedSongs.some((ss) => ss.songId === s.id) ? 'checkmark.circle.fill' : 'music.note'}
-                size={20}
-                color={selectedSongs.some((ss) => ss.songId === s.id) ? colors.primary : colors.textMuted}
-              />
-              <View style={styles.songSelectInfo}>
-                <Text style={[styles.songSelectTitle, { color: colors.text }]}>{s.title}</Text>
-                <Text style={[styles.songSelectArtist, { color: colors.textMuted }]}>
-                  {s.artist} {s.key ? `• ${s.key}` : ''}
-                </Text>
+        {/* Selected songs with settings */}
+        {selectedSongs.length > 0 && (
+          <>
+            <Text style={[styles.label, { color: colors.textMuted }]}>MÚSICAS SELECIONADAS</Text>
+            {selectedSongs.map((ss, idx) => (
+              <View
+                key={ss.songId}
+                style={[styles.selectedSongCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <View style={styles.selectedSongHeader}>
+                  <View style={[styles.songIndexBadge, { backgroundColor: colors.primary + '15' }]}>
+                    <Text style={[styles.songIndexText, { color: colors.primary }]}>{idx + 1}</Text>
+                  </View>
+                  <View style={styles.selectedSongInfo}>
+                    <Text style={[styles.selectedSongName, { color: colors.text }]}>{ss.songTitle}</Text>
+                    {ss.songArtist && (
+                      <Text style={[styles.selectedSongArtist, { color: colors.textMuted }]}>{ss.songArtist}</Text>
+                    )}
+                  </View>
+                  <Pressable onPress={() => removeSong(ss.songId)} style={styles.removeSongBtn}>
+                    <IconSymbol name="xmark.circle.fill" size={20} color={colors.danger || '#E17055'} />
+                  </Pressable>
+                </View>
+                <View style={styles.songFields}>
+                  <View style={styles.songField}>
+                    <Text style={[styles.songFieldLabel, { color: colors.textMuted }]}>Tom</Text>
+                    <TextInput
+                      style={[styles.songFieldInput, { color: colors.text, backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}
+                      placeholder="Ex: G"
+                      placeholderTextColor={colors.textMuted}
+                      value={ss.key || ''}
+                      onChangeText={(v) => updateSongKey(ss.songId, 'key', v)}
+                    />
+                  </View>
+                  <View style={styles.songField}>
+                    <Text style={[styles.songFieldLabel, { color: colors.textMuted }]}>YouTube</Text>
+                    <TextInput
+                      style={[styles.songFieldInput, { color: colors.text, backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}
+                      placeholder="Link (opcional)"
+                      placeholderTextColor={colors.textMuted}
+                      value={ss.youtubeUrl || ''}
+                      onChangeText={(v) => updateSongKey(ss.songId, 'youtubeUrl', v)}
+                      autoCapitalize="none"
+                    />
+                  </View>
+                  <View style={styles.songField}>
+                    <Text style={[styles.songFieldLabel, { color: colors.textMuted }]}>Spotify</Text>
+                    <TextInput
+                      style={[styles.songFieldInput, { color: colors.text, backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}
+                      placeholder="Link (opcional)"
+                      placeholderTextColor={colors.textMuted}
+                      value={ss.spotifyUrl || ''}
+                      onChangeText={(v) => updateSongKey(ss.songId, 'spotifyUrl', v)}
+                      autoCapitalize="none"
+                    />
+                  </View>
+                </View>
               </View>
-            </Pressable>
-          ))}
+            ))}
+          </>
+        )}
+
+        {/* Available songs */}
+        <Text style={[styles.label, { color: colors.textMuted, marginTop: Spacing.md }]}>REPERTÓRIO DISPONÍVEL</Text>
+        <View style={styles.songList}>
+          {songs.map((s) => {
+            const selected = selectedSongs.some((ss) => ss.songId === s.id);
+            return (
+              <Pressable
+                key={s.id}
+                onPress={() => toggleSong(s)}
+                style={[
+                  styles.songSelect,
+                  {
+                    backgroundColor: selected ? colors.primary + '12' : colors.surface,
+                    borderColor: selected ? colors.primary : colors.border,
+                  },
+                ]}>
+                <IconSymbol
+                  name={selected ? 'checkmark.circle.fill' : 'music.note'}
+                  size={20}
+                  color={selected ? colors.primary : colors.textMuted}
+                />
+                <View style={styles.songSelectInfo}>
+                  <Text style={[styles.songSelectTitle, { color: colors.text }]}>{s.title}</Text>
+                  <Text style={[styles.songSelectArtist, { color: colors.textMuted }]}>
+                    {s.artist} {s.key ? `• Tom: ${s.key}` : ''}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
         </View>
       </ScrollView>
     </View>
@@ -208,91 +285,44 @@ export default function CreateScheduleScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 54,
-    paddingBottom: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    borderBottomWidth: 1,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingTop: 54, paddingBottom: Spacing.md, paddingHorizontal: Spacing.md, borderBottomWidth: 1,
   },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: BorderRadius.full,
-  },
-  saveBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  content: {
-    padding: Spacing.lg,
-    paddingBottom: 60,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1,
-    marginBottom: Spacing.sm,
-    marginTop: Spacing.md,
-  },
+  headerTitle: { fontSize: 17, fontWeight: '700' },
+  backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  saveBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: BorderRadius.full },
+  saveBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  content: { padding: Spacing.lg, paddingBottom: 60 },
+  label: { fontSize: 12, fontWeight: '700', letterSpacing: 1, marginBottom: Spacing.sm, marginTop: Spacing.md },
   input: {
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 12,
-    fontSize: 15,
+    borderRadius: BorderRadius.md, borderWidth: 1,
+    paddingHorizontal: Spacing.md, paddingVertical: 12, fontSize: 15,
   },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
+  textArea: { minHeight: 80, textAlignVertical: 'top' },
+  chipList: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  selectChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: BorderRadius.full, borderWidth: 1 },
+  // Selected songs
+  selectedSongCard: { padding: Spacing.md, borderRadius: BorderRadius.md, borderWidth: 1, marginBottom: Spacing.sm },
+  selectedSongHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.sm },
+  songIndexBadge: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  songIndexText: { fontSize: 13, fontWeight: '700' },
+  selectedSongInfo: { flex: 1 },
+  selectedSongName: { fontSize: 14, fontWeight: '600' },
+  selectedSongArtist: { fontSize: 11, marginTop: 1 },
+  removeSongBtn: { padding: 4 },
+  songFields: { gap: Spacing.xs },
+  songField: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  songFieldLabel: { fontSize: 12, fontWeight: '600', width: 55 },
+  songFieldInput: {
+    flex: 1, borderRadius: BorderRadius.sm, borderWidth: 1,
+    paddingHorizontal: 10, paddingVertical: 6, fontSize: 13,
   },
-  chipList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
-  selectChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-  },
-  songList: {
-    gap: Spacing.sm,
-  },
-  songSelect: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    gap: Spacing.md,
-  },
-  songSelectInfo: {
-    flex: 1,
-  },
-  songSelectTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  songSelectArtist: {
-    fontSize: 12,
-    marginTop: 2,
-  },
+  // Available songs list
+  songList: { gap: Spacing.sm },
+  songSelect: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, borderRadius: BorderRadius.md, borderWidth: 1, gap: Spacing.md },
+  songSelectInfo: { flex: 1 },
+  songSelectTitle: { fontSize: 15, fontWeight: '600' },
+  songSelectArtist: { fontSize: 12, marginTop: 2 },
 });

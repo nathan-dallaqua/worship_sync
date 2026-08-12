@@ -53,8 +53,9 @@ export interface Song {
   chords?: string;
   notes?: string;
   key?: string;
+  letrasUrl?: string;
+  spotifyUrl?: string;
   youtubeUrl?: string;
-  defaultRole?: MemberRole;
   createdAt: string;
 }
 
@@ -62,14 +63,17 @@ export interface ScheduleTeamMember {
   memberId: string;
   memberName: string;
   role: MemberRole;
-  confirmed: boolean | null; // null = pendente, true = confirmado, false = recusado
+  confirmed: boolean | null;
 }
 
 export interface ScheduleSong {
   songId: string;
   songTitle: string;
+  songArtist?: string;
   key?: string;
   notes?: string;
+  youtubeUrl?: string;
+  spotifyUrl?: string;
 }
 
 export interface Schedule {

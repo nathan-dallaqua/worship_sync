@@ -28,6 +28,10 @@ export default function RootLayout() {
           name="admin/manage-members"
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
         />
+        <Stack.Screen
+          name="admin/manage-songs"
+          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

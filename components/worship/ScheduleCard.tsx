@@ -12,14 +12,12 @@ type Props = {
 };
 
 function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  const day = date.getDate();
-  const months = [
-    'JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN',
-    'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ',
-  ];
+  const date = new Date(dateStr + 'T00:00:00');
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
   const weekday = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][date.getDay()];
-  return `${weekday}, ${day} ${months[date.getMonth()]}`;
+  return `${weekday}, ${day}/${month}/${year}`;
 }
 
 export function ScheduleCard({ schedule, statusForMember, onPress }: Props) {

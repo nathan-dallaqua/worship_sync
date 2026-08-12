@@ -57,7 +57,7 @@ export default function ProfileScreen() {
             { backgroundColor: colors.surface, borderColor: colors.border },
             pressed && { opacity: 0.8 },
           ]}
-          onPress={() => router.push('/admin/manage-members' as Href)}>
+          onPress={() => router.push('/admin/manage-songs' as Href)}>
           <IconSymbol name="music.quarternote.3" size={22} color={colors.primary} />
           <Text style={[styles.rowText, { color: colors.text }]}>Gerenciar repertório</Text>
           <IconSymbol name="chevron.right" size={20} color={colors.textMuted} />

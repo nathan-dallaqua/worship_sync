@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, BorderRadius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -8,6 +8,8 @@ type Props = {
   name: string;
   role: MemberRole;
   confirmed?: boolean | null;
+  selected?: boolean;
+  onPress?: () => void;
 };
 
 const ROLE_COLORS: Record<MemberRole, string> = {
@@ -22,13 +24,18 @@ const ROLE_COLORS: Record<MemberRole, string> = {
   trompete: '#F39C12',
 };
 
-export function MemberChip({ name, role, confirmed }: Props) {
+export function MemberChip({ name, role, confirmed, selected, onPress }: Props) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const roleColor = ROLE_COLORS[role];
 
-  return (
-    <View style={[styles.chip, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+  const content = (
+    <View
+      style={[
+        styles.chip,
+        { backgroundColor: colors.surface, borderColor: selected ? colors.primary : colors.border },
+        selected && { borderWidth: 2, backgroundColor: colors.primary + '08' },
+      ]}>
       <View style={[styles.avatar, { backgroundColor: roleColor + '20' }]}>
         <Text style={[styles.avatarText, { color: roleColor }]}>
           {name.charAt(0).toUpperCase()}
@@ -55,6 +62,16 @@ export function MemberChip({ name, role, confirmed }: Props) {
       )}
     </View>
   );
+
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress} style={({ pressed }) => pressed && { opacity: 0.8 }}>
+        {content}
+      </Pressable>
+    );
+  }
+
+  return content;
 }
 
 const styles = StyleSheet.create({
