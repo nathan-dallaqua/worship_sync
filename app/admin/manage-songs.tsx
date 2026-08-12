@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Linking,
+  ActivityIndicator,
 } from 'react-native';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -20,6 +21,7 @@ import { Colors, Spacing, BorderRadius } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useSongs } from '@/hooks/useSongs';
 import type { Song } from '@/types';
+import { fetchLyrics } from '@/utils/fetchLyrics';
 
 function ConfirmModal({
   visible,
@@ -84,6 +86,7 @@ function SongFormModal({
     letrasUrl: string;
     spotifyUrl: string;
     youtubeUrl: string;
+    lyrics: string;
   }) => void;
 }) {
   const isEdit = song !== null;
@@ -93,6 +96,8 @@ function SongFormModal({
   const [letrasUrl, setLetrasUrl] = useState('');
   const [spotifyUrl, setSpotifyUrl] = useState('');
   const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [lyrics, setLyrics] = useState('');
+  const [fetchingLyrics, setFetchingLyrics] = useState(false);
 
   const initForm = () => {
     if (song) {
@@ -102,6 +107,7 @@ function SongFormModal({
       setLetrasUrl(song.letrasUrl || '');
       setSpotifyUrl(song.spotifyUrl || '');
       setYoutubeUrl(song.youtubeUrl || '');
+      setLyrics(song.lyrics || '');
     } else {
       setTitle('');
       setArtist('');
@@ -109,6 +115,7 @@ function SongFormModal({
       setLetrasUrl('');
       setSpotifyUrl('');
       setYoutubeUrl('');
+      setLyrics('');
     }
   };
 
@@ -124,6 +131,7 @@ function SongFormModal({
       letrasUrl: letrasUrl.trim(),
       spotifyUrl: spotifyUrl.trim(),
       youtubeUrl: youtubeUrl.trim(),
+      lyrics,
     });
   };
 
@@ -135,6 +143,24 @@ function SongFormModal({
         ? `https://www.letras.mus.br/?q=${query}`
         : `https://www.vagalume.com.br/search?q=${query}`;
     Linking.openURL(url);
+  };
+
+  const handleFetchLyrics = async () => {
+    if (!letrasUrl.trim()) return;
+    setFetchingLyrics(true);
+    try {
+      const result = await fetchLyrics(letrasUrl.trim());
+      if (result) {
+        setLyrics(result);
+        Alert.alert('Letra encontrada!', 'A letra foi carregada. Salve a música para guardar.');
+      } else {
+        Alert.alert('Não foi possível', 'Não conseguimos extrair a letra deste link. Tente outro site.');
+      }
+    } catch {
+      Alert.alert('Erro', 'Falha ao buscar a letra.');
+    } finally {
+      setFetchingLyrics(false);
+    }
   };
 
   return (
@@ -204,15 +230,29 @@ function SongFormModal({
             </View>
 
             <Text style={[styles.urlLabel, { color: colors.textMuted }]}>Letras</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text, backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}
-              placeholder="https://www.letras.mus.br/..."
-              placeholderTextColor={colors.textMuted}
-              value={letrasUrl}
-              onChangeText={setLetrasUrl}
-              autoCapitalize="none"
-              keyboardType="url"
-            />
+            <View style={styles.urlRow}>
+              <TextInput
+                style={[styles.input, styles.urlInput, { color: colors.text, backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}
+                placeholder="https://www.letras.mus.br/..."
+                placeholderTextColor={colors.textMuted}
+                value={letrasUrl}
+                onChangeText={setLetrasUrl}
+                autoCapitalize="none"
+                keyboardType="url"
+              />
+              {letrasUrl.trim().length > 0 && (
+                <Pressable
+                  onPress={handleFetchLyrics}
+                  disabled={fetchingLyrics}
+                  style={[styles.fetchBtn, { backgroundColor: colors.primary }]}>
+                  {fetchingLyrics ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <IconSymbol name="arrow.right" size={16} color="#fff" />
+                  )}
+                </Pressable>
+              )}
+            </View>
 
             <Text style={[styles.urlLabel, { color: colors.textMuted }]}>Spotify</Text>
             <TextInput
@@ -283,6 +323,7 @@ export default function ManageSongsScreen() {
     letrasUrl: string;
     spotifyUrl: string;
     youtubeUrl: string;
+    lyrics: string;
   }) => {
     if (editingSong) {
       await update(editingSong.id, data as Partial<Song>);
@@ -458,6 +499,12 @@ const styles = StyleSheet.create({
   input: {
     borderRadius: BorderRadius.md, borderWidth: 1,
     paddingHorizontal: Spacing.md, paddingVertical: 10, fontSize: 15,
+  },
+  urlRow: { flexDirection: 'row', gap: Spacing.sm },
+  urlInput: { flex: 1 },
+  fetchBtn: {
+    width: 44, height: 44, borderRadius: BorderRadius.md,
+    alignItems: 'center', justifyContent: 'center',
   },
   searchRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
