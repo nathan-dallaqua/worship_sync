@@ -18,6 +18,9 @@ const MAPPING = {
   'checkmark.circle.fill': 'check-circle',
   'trash.fill': 'delete',
   'pencil.circle.fill': 'edit',
+  'sun.max.fill': 'light-mode',
+  'moon.fill': 'dark-mode',
+  'circle.lefthalf.filled': 'brightness-auto',
   // Music
   'music.note': 'music-note',
   'music.quarternote.3': 'library-music',

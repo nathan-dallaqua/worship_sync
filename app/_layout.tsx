@@ -33,7 +33,7 @@ export default function RootLayout() {
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
         />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
     </ThemeProvider>
   );
 }

@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, Linking, Modal } from 'react-native';
 
@@ -62,9 +62,16 @@ export default function ScheduleDetailScreen() {
         <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
           Detalhes da Escala
         </Text>
-        <Pressable onPress={() => setShowDeleteConfirm(true)} style={styles.backBtn}>
-          <IconSymbol name="trash.fill" size={20} color={colors.danger || '#E17055'} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable
+            onPress={() => router.push(`/admin/create-schedule?id=${schedule.id}` as Href)}
+            style={styles.backBtn}>
+            <IconSymbol name="pencil.circle.fill" size={22} color={colors.primary} />
+          </Pressable>
+          <Pressable onPress={() => setShowDeleteConfirm(true)} style={styles.backBtn}>
+            <IconSymbol name="trash.fill" size={20} color={colors.danger || '#E17055'} />
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -227,6 +234,7 @@ const styles = StyleSheet.create({
     paddingTop: 54, paddingBottom: Spacing.md, paddingHorizontal: Spacing.md, borderBottomWidth: 1,
   },
   headerTitle: { fontSize: 17, fontWeight: '700', flex: 1, textAlign: 'center' },
+  headerActions: { flexDirection: 'row' },
   backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   content: { padding: Spacing.lg, paddingBottom: 160 },
   section: {

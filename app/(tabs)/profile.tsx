@@ -5,10 +5,18 @@ import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-nat
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors, Spacing, BorderRadius } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useThemePreference, type ThemePreference } from '@/hooks/use-theme-preference';
+
+const THEME_OPTIONS: { value: ThemePreference; label: string; icon: 'circle.lefthalf.filled' | 'sun.max.fill' | 'moon.fill' }[] = [
+  { value: 'system', label: 'Sistema', icon: 'circle.lefthalf.filled' },
+  { value: 'light', label: 'Claro', icon: 'sun.max.fill' },
+  { value: 'dark', label: 'Escuro', icon: 'moon.fill' },
+];
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const { preference, setThemePreference } = useThemePreference();
   const [isAdmin, setIsAdmin] = useState(true);
   const [userName, setUserName] = useState('Líder do Grupo');
 
@@ -66,6 +74,40 @@ export default function ProfileScreen() {
 
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>CONFIGURAÇÕES</Text>
+
+        <View style={[styles.themeCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.themeHeader}>
+            <IconSymbol name="sun.max.fill" size={22} color={colors.primary} />
+            <Text style={[styles.rowText, { color: colors.text }]}>Tema</Text>
+          </View>
+          <View style={styles.segment}>
+            {THEME_OPTIONS.map((opt) => {
+              const active = preference === opt.value;
+              return (
+                <Pressable
+                  key={opt.value}
+                  onPress={() => setThemePreference(opt.value)}
+                  style={[
+                    styles.segmentBtn,
+                    { backgroundColor: active ? colors.primary : colors.surfaceSecondary },
+                  ]}>
+                  <IconSymbol
+                    name={opt.icon}
+                    size={16}
+                    color={active ? '#fff' : colors.textSecondary}
+                  />
+                  <Text
+                    style={[
+                      styles.segmentText,
+                      { color: active ? '#fff' : colors.textSecondary },
+                    ]}>
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
 
         <View style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <IconSymbol name="gearshape.fill" size={22} color={colors.primary} />
@@ -157,6 +199,35 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '500',
+  },
+  themeCard: {
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  themeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  segment: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  segmentBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.sm,
+  },
+  segmentText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   version: {
     textAlign: 'center',

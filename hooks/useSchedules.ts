@@ -25,6 +25,13 @@ export function useSchedules() {
     [storage],
   );
 
+  const updateSchedule = useCallback(
+    async (id: string, updates: Partial<Schedule>) => {
+      return storage.update(id, updates);
+    },
+    [storage],
+  );
+
   const confirmPresence = useCallback(
     async (scheduleId: string, memberId: string, confirmed: boolean) => {
       const schedule = storage.data.find((s) => s.id === scheduleId);
@@ -66,6 +73,7 @@ export function useSchedules() {
   return {
     ...storage,
     addSchedule,
+    updateSchedule,
     updateScheduleStatus,
     confirmPresence,
     upcomingSchedules,

@@ -1,8 +1,8 @@
 import { Platform } from 'react-native';
 
 // Modern worship-themed color palette
-const primary = '#6C5CE7';
-const primaryLight = '#A29BFE';
+const primary = '#1DB954';
+const primaryLight = '#1ED760';
 const secondary = '#00CEC9';
 const accent = '#FD79A8';
 const success = '#00B894';
@@ -11,17 +11,17 @@ const danger = '#E17055';
 
 export const Colors = {
   light: {
-    text: '#2D2D3A',
-    textSecondary: '#636E72',
-    textMuted: '#B2BEC3',
-    background: '#F8F9FE',
+    text: '#1B1B1B',
+    textSecondary: '#576C61',
+    textMuted: '#98A39B',
+    background: '#F2F8F3',
     surface: '#FFFFFF',
-    surfaceSecondary: '#F1F2F8',
-    border: '#E8E8F0',
+    surfaceSecondary: '#E8F4EC',
+    border: '#DEEBE1',
     tint: primary,
-    tabIconDefault: '#B2BEC3',
+    tabIconDefault: '#98A39B',
     tabIconSelected: primary,
-    icon: '#636E72',
+    icon: '#576C61',
     primary,
     primaryLight,
     secondary,
@@ -29,20 +29,20 @@ export const Colors = {
     success,
     warning,
     danger,
-    cardShadow: 'rgba(108, 92, 231, 0.08)',
+    cardShadow: 'rgba(29, 185, 84, 0.10)',
   },
   dark: {
-    text: '#E8E8F0',
-    textSecondary: '#9BA1A6',
-    textMuted: '#636E72',
-    background: '#0F0F1A',
-    surface: '#1A1A2E',
-    surfaceSecondary: '#16213E',
-    border: '#2D2D3A',
+    text: '#E8F0EA',
+    textSecondary: '#9BA8A0',
+    textMuted: '#5C6B62',
+    background: '#0B1210',
+    surface: '#122019',
+    surfaceSecondary: '#1B2B22',
+    border: '#24352B',
     tint: primaryLight,
-    tabIconDefault: '#636E72',
+    tabIconDefault: '#5C6B62',
     tabIconSelected: primaryLight,
-    icon: '#9BA1A6',
+    icon: '#9BA8A0',
     primary,
     primaryLight,
     secondary,

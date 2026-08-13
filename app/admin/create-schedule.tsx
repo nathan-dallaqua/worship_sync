@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -22,9 +22,13 @@ import { ROLE_LABELS } from '@/types';
 export default function CreateScheduleScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const { addSchedule } = useSchedules();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const isEditing = !!id;
+  const { addSchedule, updateSchedule, data: schedules } = useSchedules();
   const { data: songs } = useSongs();
   const { data: members } = useMembers();
+
+  const existing = schedules.find((s) => s.id === id);
 
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
@@ -32,6 +36,19 @@ export default function CreateScheduleScreen() {
   const [leaderId, setLeaderId] = useState('');
   const [selectedSongs, setSelectedSongs] = useState<ScheduleSong[]>([]);
   const [team, setTeam] = useState<ScheduleTeamMember[]>([]);
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (isEditing && existing && !initialized) {
+      setTitle(existing.title);
+      setDate(existing.date.split('-').reverse().join('/'));
+      setDescription(existing.description || '');
+      setLeaderId(existing.leaderId);
+      setTeam(existing.team);
+      setSelectedSongs(existing.songs);
+      setInitialized(true);
+    }
+  }, [isEditing, existing, initialized]);
 
   const toggleSong = (song: Song) => {
     setSelectedSongs((prev) => {
@@ -86,7 +103,7 @@ export default function CreateScheduleScreen() {
     const [d, m, y] = date.split('/');
     const isoDate = d && m && y ? `${y}-${m}-${d}` : date;
 
-    await addSchedule({
+    const payload = {
       title,
       date: isoDate,
       description,
@@ -94,8 +111,13 @@ export default function CreateScheduleScreen() {
       leaderName: leader?.name || 'Líder',
       team,
       songs: selectedSongs,
-      status: 'published',
-    });
+    };
+
+    if (isEditing && id) {
+      await updateSchedule(id, payload);
+    } else {
+      await addSchedule({ ...payload, status: 'published' });
+    }
 
     router.back();
   };
@@ -106,7 +128,9 @@ export default function CreateScheduleScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <IconSymbol name="xmark.circle.fill" size={24} color={colors.textMuted} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Nova Escala</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          {isEditing ? 'Editar Escala' : 'Nova Escala'}
+        </Text>
         <Pressable
           onPress={handleCreate}
           style={({ pressed }) => [
@@ -114,7 +138,7 @@ export default function CreateScheduleScreen() {
             { backgroundColor: colors.primary },
             pressed && { opacity: 0.8 },
           ]}>
-          <Text style={styles.saveBtnText}>Criar</Text>
+          <Text style={styles.saveBtnText}>{isEditing ? 'Salvar' : 'Criar'}</Text>
         </Pressable>
       </View>
 

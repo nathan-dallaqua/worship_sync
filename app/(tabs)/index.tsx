@@ -23,13 +23,13 @@ export default function HomeScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.primary }]}>
         <View>
-          <Text style={[styles.greeting, { color: colors.textMuted }]}>Olá, bem-vindo</Text>
-          <Text style={[styles.appName, { color: colors.text }]}>Worship Sync</Text>
+          <Text style={[styles.greeting, { color: 'rgba(255,255,255,0.85)' }]}>Olá, bem-vindo</Text>
+          <Text style={[styles.appName, { color: '#fff' }]}>Worship Sync</Text>
         </View>
-        <View style={[styles.avatar, { backgroundColor: colors.primary + '20' }]}>
-          <Text style={[styles.avatarText, { color: colors.primary }]}>W</Text>
+        <View style={[styles.avatar, { backgroundColor: 'rgba(255,255,255,0.22)' }]}>
+          <Text style={[styles.avatarText, { color: '#fff' }]}>W</Text>
         </View>
       </View>
 
@@ -79,13 +79,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.lg,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xl,
   },
   greeting: {
     fontSize: 14,
     fontWeight: '500',
   },
   appName: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
     marginTop: 2,
   },

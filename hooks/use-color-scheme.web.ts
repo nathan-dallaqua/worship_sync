@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useColorScheme as useRNColorScheme } from 'react-native';
 
+import { useThemePreference } from './use-theme-preference';
+
 /**
  * To support static rendering, this value needs to be re-calculated on the client side for web
  */
@@ -11,11 +13,12 @@ export function useColorScheme() {
     setHasHydrated(true);
   }, []);
 
-  const colorScheme = useRNColorScheme();
+  const system = useRNColorScheme();
+  const { preference } = useThemePreference();
 
-  if (hasHydrated) {
-    return colorScheme;
+  if (!hasHydrated) {
+    return 'light';
   }
 
-  return 'light';
+  return preference === 'system' ? system : preference;
 }
